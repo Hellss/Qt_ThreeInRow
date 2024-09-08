@@ -11,16 +11,18 @@
 #include <vector>
 
 
-const int SIZE = 10;
-const static std::vector<QString> COLORS = {"A", "B", "C", "D", "E", "F"};
-const static QMap<QString, QString> colorMap = {
-    {"A", "red"},
-    {"B", "blue"},
-    {"C", "green"},
-    {"D", "pink"},
-    {"E", "purple"},
-    {"F", "orange"}
-};
+namespace {
+    const int SIZE = 10;
+    const std::vector<QString> COLORS = {"A", "B", "C", "D", "E", "F"};
+    const QMap<QString, QString> colorMap = {
+        {"A", "red"},
+        {"B", "blue"},
+        {"C", "green"},
+        {"D", "pink"},
+        {"E", "purple"},
+        {"F", "orange"}
+    };
+}
 
 
 class Board : public QWidget
