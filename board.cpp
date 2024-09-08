@@ -1,13 +1,15 @@
 #include "board.h"
+#include <set>
 #include <ctime>
 #include <QMessageBox>
 
 
-Board::Board(QWidget *parent) : QWidget(parent), selectedX(-1), selectedY(-1), canMove(true) {
+Board::Board(QWidget *parent) : QWidget(parent), selectedX(-1), selectedY(-1), canMove(true), score(-1) {
     srand(time(0));
     gridLayout = new QGridLayout(this);
     init();
     while (tick()) {};
+    score = 0;
     connect(&timer, &QTimer::timeout, this, &Board::updateBoard);
     timer.start(1250);
 }
@@ -27,10 +29,11 @@ void Board::init() {
     for (int i = 0; i < SIZE; ++i) {
         for (int j = 0; j < SIZE; ++j) {
             buttons[i][j] = new QPushButton(this);
+            //buttons[i][j]->setFixedSize(45, 45);
+            buttons[i][j]->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
             grid[i][j] = COLORS[rand() % COLORS.size()];
             buttons[i][j]->setText(grid[i][j]);
             updateButtonAppearance(i, j);  // Set initial color
-            buttons[i][j]->setFixedSize(50, 50);
             gridLayout->addWidget(buttons[i][j], i, j);
             connect(buttons[i][j], &QPushButton::clicked, [=]() { handleClick(i, j); });
         }
@@ -105,55 +108,88 @@ bool Board::tick() {
 
 bool Board::checkAndRemove(int x, int y, bool check) {
     QString color = grid[x][y];
-    std::vector<std::pair<int, int>> matches;
+    if (color == "")
+        return false;
+
+    std::set<std::pair<int, int>> matches;  // Set для хранения уникальных совпадений
 
     // Check horizontal
-    int x0 = x;
     int count = 1;
+    int xStart = x;
+    int xEnd = x;
     for (int i = x + 1; i < SIZE && grid[i][y] == color; ++i) {
         count++;
+        xEnd = i;
     }
     for (int i = x - 1; i >= 0 && grid[i][y] == color; --i) {
         count++;
-        x0 = i;
+        xStart = i;
     }
     if (count >= 3) {
-        for (int i = x0; i < x0 + count; ++i) {
-            matches.emplace_back(i, y);
+        for (int i = xStart; i <= xEnd; ++i) {
+            matches.emplace(i, y);  // Добавляем все элементы линии в сет
         }
-    }
-    else
-    {
-        x0 = x;
-        count = 1;
     }
 
-    for (int i = x0; i < x0 + count; ++i) {
-        // Check vertical
-        int y0 = y;
-        int count_y = 1;
-        for (int j = y + 1; j < SIZE && grid[i][j] == color; ++j) {
-            count_y++;
+    // Check vertical
+    count = 1;
+    int yStart = y;
+    int yEnd = y;
+    for (int j = y + 1; j < SIZE && grid[x][j] == color; ++j) {
+        count++;
+        yEnd = j;
+    }
+    for (int j = y - 1; j >= 0 && grid[x][j] == color; --j) {
+        count++;
+        yStart = j;
+    }
+    if (count >= 3) {
+        for (int j = yStart; j <= yEnd; ++j) {
+            matches.emplace(x, j);  // Добавляем все элементы вертикальной линии в сет
         }
-        for (int j = y - 1; j >= 0 && grid[i][j] == color; --j) {
-            count_y++;
-            y0 = j;
+    }
+
+    // Проверка на "крест" или "угол"
+    for (auto& match : matches) {
+        int mx = match.first;
+        int my = match.second;
+
+        // Проверяем горизонтальные линии вокруг вертикальных совпадений
+        if (mx > 1 && grid[mx - 1][my] == color && grid[mx - 2][my] == color) {
+            matches.emplace(mx - 1, my);
+            matches.emplace(mx - 2, my);
         }
-        if (count_y >= 3) {
-            for (int j = y0; j < y0 + count_y; ++j) {
-                matches.emplace_back(i, j);
-            }
+        if (mx < SIZE - 2 && grid[mx + 1][my] == color && grid[mx + 2][my] == color) {
+            matches.emplace(mx + 1, my);
+            matches.emplace(mx + 2, my);
+        }
+
+        // Проверяем вертикальные линии вокруг горизонтальных совпадений
+        if (my > 1 && grid[mx][my - 1] == color && grid[mx][my - 2] == color) {
+            matches.emplace(mx, my - 1);
+            matches.emplace(mx, my - 2);
+        }
+        if (my < SIZE - 2 && grid[mx][my + 1] == color && grid[mx][my + 2] == color) {
+            matches.emplace(mx, my + 1);
+            matches.emplace(mx, my + 2);
         }
     }
 
     if (!matches.empty() && !check) {
+        if (score != -1) {
+            score += matches.size();
+            setWindowTitle("Three In Row. Score: " + QString::number(score));
+        }
         for (const auto &pos : matches) {
             grid[pos.first][pos.second] = "";
             buttons[pos.first][pos.second]->setText("");
         }
     }
+
     return !matches.empty();
 }
+
+
 
 
 void Board::collapse() {

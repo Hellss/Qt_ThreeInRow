@@ -3,6 +3,7 @@
 
 
 #include <QGridLayout>
+#include <QLabel>
 #include <QMap>
 #include <QPushButton>
 #include <QTimer>
@@ -36,9 +37,10 @@ private:
     QTimer timer;
     int selectedX, selectedY;
     bool canMove;
+    size_t score;
 
     void init();
-    void updateButtonAppearance(int x, int y);
+    void updateButtonAppearance(int x, int y);    
     void handleClick(int x, int y);
     bool isValidMove(int x1, int y1, int x2, int y2);
     void swap(int x1, int y1, int x2, int y2);
